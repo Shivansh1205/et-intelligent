@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 
 interface MastheadProps {
   persona?: string;
@@ -50,14 +51,24 @@ export default function Masthead({
     }
   };
 
+  // Sections: first two are feed-internal tabs, rest are full routes
   const sections = [
-    { id: "for-you", label: "For You" },
-    { id: "trending", label: "Trending" },
-    { id: "markets", label: "Markets" },
-    { id: "startups", label: "Startups" },
-    { id: "policy", label: "Policy" },
-    { id: "bookmarks", label: "Bookmarks" },
+    { id: "for-you",   label: "For You",   href: "/feed" },
+    { id: "trending",  label: "Trending",  href: "/feed" },
+    { id: "markets",   label: "Markets",   href: "/markets" },
+    { id: "startups",  label: "Startups",  href: "/startups" },
+    { id: "policy",    label: "Policy",    href: "/policy" },
+    { id: "bookmarks", label: "Bookmarks", href: "/bookmarks" },
   ];
+
+  // Derive active section from pathname when not on /feed
+  const routeSection =
+    pathname === "/markets"   ? "markets"   :
+    pathname === "/startups"  ? "startups"  :
+    pathname === "/policy"    ? "policy"    :
+    pathname === "/bookmarks" ? "bookmarks" :
+    null;
+  const effectiveActive = routeSection ?? activeSection;
 
   const initials = displayName
     ? displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
@@ -208,31 +219,52 @@ export default function Masthead({
         overflowX: "auto",
       }}>
         {sections.map((sec, i) => {
-          const isActive = activeSection === sec.id;
+          const isActive = effectiveActive === sec.id;
+          // For-you / trending: stay on /feed and call onSectionChange
+          const isFeedTab = sec.id === "for-you" || sec.id === "trending";
+          const sharedStyle: React.CSSProperties = {
+            display: "flex",
+            alignItems: "center",
+            height: 32,
+            borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
+            borderRight: i < sections.length - 1 ? "1px solid var(--rule-heavy)" : "none",
+            padding: "0 16px",
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 10,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: isActive ? "var(--accent)" : "var(--ink-secondary)",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            textDecoration: "none",
+            background: "none",
+          };
+          if (isFeedTab) {
+            return (
+              <button
+                key={sec.id}
+                onClick={() => onSectionChange?.(sec.id)}
+                style={{ ...sharedStyle, border: "none",
+                  borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
+                  borderRight: i < sections.length - 1 ? "1px solid var(--rule-heavy)" : "none",
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = "var(--ink)"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = "var(--ink-secondary)"; }}
+              >
+                {sec.label}
+              </button>
+            );
+          }
           return (
-            <button
+            <Link
               key={sec.id}
-              onClick={() => onSectionChange?.(sec.id)}
-              style={{
-                background: "none",
-                border: "none",
-                borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-                borderRight: i < sections.length - 1 ? "1px solid var(--rule-heavy)" : "none",
-                padding: "0 16px",
-                height: "100%",
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: 10,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: isActive ? "var(--accent)" : "var(--ink-secondary)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = "var(--ink)"; }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = "var(--ink-secondary)"; }}
+              href={sec.href}
+              style={sharedStyle}
+              onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}
+              onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.color = "var(--ink-secondary)"; }}
             >
               {sec.label}
-            </button>
+            </Link>
           );
         })}
       </div>
