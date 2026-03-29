@@ -14,67 +14,56 @@ interface StoryArcTimelineProps {
 }
 
 function getSentimentColor(score: number): string {
-  if (score > 0.3) return "var(--positive)";
-  if (score < -0.3) return "var(--negative)";
-  return "var(--neutral)";
+  if (score > 0.3) return "var(--accent-secondary)";
+  if (score < -0.3) return "var(--accent)";
+  return "var(--ink-tertiary)";
+}
+
+function getSentimentLabel(score: number): string {
+  if (score > 0.3) return "BULLISH";
+  if (score < -0.3) return "BEARISH";
+  return "NEUTRAL";
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "numeric", month: "short",
+  }).toUpperCase();
 }
 
-export default function StoryArcTimeline({
-  articles,
-  onArticleClick,
-}: StoryArcTimelineProps) {
+export default function StoryArcTimeline({ articles, onArticleClick }: StoryArcTimelineProps) {
   if (!articles || articles.length === 0) return null;
 
   const sorted = [...articles].sort(
-    (a, b) =>
-      new Date(a.published_at).getTime() - new Date(b.published_at).getTime()
+    (a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime()
   );
 
   return (
-    <div id="story-arc-timeline" style={{ marginBottom: 32 }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          color: "var(--accent-primary)",
-          marginBottom: 16,
-          paddingLeft: 24,
-        }}
-      >
-        Story Timeline
+    <div id="story-arc-timeline" style={{ padding: "32px 0" }}>
+      <div className="section-break" style={{ marginBottom: 24 }}>
+        <span className="font-mono" style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--ink)", whiteSpace: "nowrap" }}>
+          The Story So Far
+        </span>
       </div>
 
       <div
         className="snap-x"
-        style={{
-          display: "flex",
-          overflowX: "auto",
-          gap: 16,
-          paddingBottom: 16,
-          paddingLeft: 24,
-          paddingRight: 24,
-          position: "relative",
-        }}
+        style={{ display: "flex", overflowX: "auto", paddingBottom: 16, position: "relative" }}
       >
+        {/* Connecting line */}
+        <div style={{
+          position: "absolute",
+          top: 20,
+          left: 0,
+          right: 0,
+          height: 1,
+          background: "var(--rule)",
+          zIndex: 0,
+        }} />
+
         {sorted.map((article, i) => {
           const color = getSentimentColor(article.sentiment_score);
-          const nextColor =
-            i < sorted.length - 1
-              ? getSentimentColor(sorted[i + 1].sentiment_score)
-              : color;
-
+          const label = getSentimentLabel(article.sentiment_score);
           return (
             <div
               key={article.id}
@@ -84,86 +73,42 @@ export default function StoryArcTimeline({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                minWidth: 200,
-                maxWidth: 240,
+                minWidth: 180,
+                maxWidth: 200,
                 flexShrink: 0,
+                paddingRight: i < sorted.length - 1 ? 16 : 0,
+                zIndex: 1,
               }}
             >
-              {/* Connecting line */}
-              {i < sorted.length - 1 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    left: "50%",
-                    width: "calc(100% + 16px)",
-                    height: 3,
-                    background: `linear-gradient(90deg, ${color}, ${nextColor})`,
-                    opacity: 0.4,
-                    borderRadius: 2,
-                  }}
-                />
-              )}
+              {/* Date */}
+              <div className="font-mono" style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--ink-tertiary)", marginBottom: 8, textAlign: "center" }}>
+                {formatDate(article.published_at)}
+              </div>
 
-              {/* Dot */}
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: "50%",
-                  background: color,
-                  boxShadow: `0 0 12px ${color}`,
-                  border: "3px solid var(--bg-primary)",
-                  zIndex: 1,
-                  marginBottom: 12,
-                  flexShrink: 0,
-                }}
-              />
+              {/* Square dot */}
+              <div style={{
+                width: 8, height: 8,
+                background: color,
+                flexShrink: 0,
+                marginBottom: 12,
+                zIndex: 2,
+              }} />
 
               {/* Card */}
               <div
                 onClick={() => onArticleClick?.(article.id)}
-                style={{
-                  padding: 14,
-                  borderRadius: 12,
-                  border: "1px solid var(--border)",
-                  background: "var(--bg-secondary)",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  width: "100%",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = color;
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
+                style={{ cursor: "pointer", width: "100%", padding: "0 8px" }}
               >
                 <div
-                  className="font-mono"
-                  style={{
-                    fontSize: 10,
-                    color: "var(--text-tertiary)",
-                    marginBottom: 6,
-                  }}
-                >
-                  {formatDate(article.published_at)}
-                </div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    lineHeight: 1.35,
-                    color: "var(--text-primary)",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
+                  className="font-headline story-entry"
+                  style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginBottom: 6 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--ink)"; }}
                 >
                   {article.title}
+                </div>
+                <div className="font-mono" style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color }}>
+                  {label}
                 </div>
               </div>
             </div>

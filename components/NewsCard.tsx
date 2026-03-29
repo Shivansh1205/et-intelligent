@@ -19,6 +19,7 @@ interface NewsCardProps {
   article: Article;
   onBookmark?: (id: string) => void;
   onClick?: (id: string) => void;
+  variant?: "lead" | "secondary" | "sidebar";
 }
 
 function timeAgo(dateStr: string): string {
@@ -30,221 +31,174 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function getSentimentBadge(score: number) {
-  if (score > 0.3) return { label: "Bullish", color: "var(--positive)", bg: "rgba(16,185,129,0.1)" };
-  if (score < -0.3) return { label: "Bearish", color: "var(--negative)", bg: "rgba(239,68,68,0.1)" };
-  return { label: "Neutral", color: "var(--neutral)", bg: "rgba(107,114,128,0.1)" };
+function getSentiment(score: number): { label: string; color: string } {
+  if (score > 0.3) return { label: "BULLISH", color: "var(--accent)" };
+  if (score < -0.3) return { label: "BEARISH", color: "var(--accent-secondary)" };
+  return { label: "NEUTRAL", color: "var(--ink-tertiary)" };
 }
 
-export default function NewsCard({ article, onBookmark, onClick }: NewsCardProps) {
+function getCategory(article: Article): string {
+  const tags = article.topic_tags ?? [];
+  if (tags.length > 0) return tags[0].toUpperCase();
+  const sectors = article.entities?.sectors ?? [];
+  if (sectors.length > 0) return sectors[0].toUpperCase();
+  return "BUSINESS";
+}
+
+export default function NewsCard({ article, onBookmark, onClick, variant = "secondary" }: NewsCardProps) {
   const [bookmarked, setBookmarked] = useState(false);
-  const sentiment = getSentimentBadge(article.sentiment_score);
-  const entities = article.entities ?? {};
-  const allTags = [
-    ...(entities.companies ?? []).slice(0, 2),
-    ...(entities.sectors ?? []).slice(0, 1),
-  ];
-  const relevance = article.relevance_score ?? 0;
-  const maxRelevance = 10;
-  const relevancePct = Math.min(100, Math.max(0, (relevance / maxRelevance) * 100));
+  const [sentimentOpen, setSentimentOpen] = useState(false);
+  const sentiment = getSentiment(article.sentiment_score);
+  const category = getCategory(article);
+  const companies = article.entities?.companies ?? [];
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setBookmarked(!bookmarked);
+    setBookmarked(true);
     onBookmark?.(article.id);
   };
 
-  return (
-    <div
-      id={`news-card-${article.id}`}
-      onClick={() => onClick?.(article.id)}
-      style={{
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border)",
-        borderRadius: 16,
-        overflow: "hidden",
-        cursor: "pointer",
-        transition: "all 0.25s ease",
-        position: "relative",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.3)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "var(--border)";
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
-      }}
-    >
-      {/* Image or gradient header */}
-      {article.image_url ? (
-        <div
-          style={{
-            height: 160,
-            backgroundImage: `url(${article.image_url})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            position: "relative",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(transparent 50%, var(--bg-secondary) 100%)",
-            }}
-          />
+  if (variant === "lead") {
+    return (
+      <div
+        className="story-entry"
+        id={`news-card-${article.id}`}
+        style={{ cursor: "pointer" }}
+        onClick={() => onClick?.(article.id)}
+      >
+        <div className="font-mono" style={{ fontSize: 10, letterSpacing: "0.15em", color: "var(--accent)", marginBottom: 6 }}>
+          LEAD STORY
         </div>
-      ) : (
-        <div
-          style={{
-            height: 80,
-            background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))",
-          }}
-        />
-      )}
-
-      <div style={{ padding: "16px 20px 20px" }}>
-        {/* Source + time */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <span
-            className="font-mono"
-            style={{ fontSize: 11, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}
-          >
-            {timeAgo(article.published_at)}
-          </span>
-          <div
-            style={{
-              padding: "3px 10px",
-              borderRadius: 999,
-              background: sentiment.bg,
-              color: sentiment.color,
-              fontSize: 11,
-              fontWeight: 600,
-            }}
-          >
-            {sentiment.label}
-          </div>
-        </div>
-
-        {/* Title */}
-        <h3
-          className="font-headline"
-          style={{
-            fontSize: 17,
-            fontWeight: 600,
-            lineHeight: 1.35,
-            color: "var(--text-primary)",
-            marginBottom: 10,
-            display: "-webkit-box",
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
+        <div style={{ height: 2, background: "var(--accent)", marginBottom: 14 }} />
+        <h2
+          className="font-headline story-headline"
+          style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.1, color: "var(--ink)", marginBottom: 10 }}
         >
           {article.title}
-        </h3>
-
-        {/* Summary */}
-        <p
-          style={{
-            fontSize: 13,
-            lineHeight: 1.6,
-            color: "var(--text-secondary)",
-            marginBottom: 14,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
+        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span className="font-mono" style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-tertiary)", fontStyle: "italic" }}>
+            By Economic Times &middot; {timeAgo(article.published_at)}
+          </span>
+          <span
+            style={{ marginLeft: "auto", cursor: "pointer" }}
+            className="font-mono"
+            onClick={(e) => { e.stopPropagation(); if (!bookmarked) handleBookmark(e); }}
+          >
+            <span className="font-mono" style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: bookmarked ? "var(--accent-secondary)" : "var(--ink-tertiary)" }}>
+              {bookmarked ? "Saved" : ""}
+            </span>
+          </span>
+        </div>
+        <p className="font-body" style={{ fontSize: 15, fontStyle: "italic", lineHeight: 1.6, color: "var(--ink-secondary)", marginBottom: 14, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           {article.summary}
         </p>
-
-        {/* Entity tags */}
-        {allTags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-            {allTags.map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  padding: "3px 10px",
-                  borderRadius: 999,
-                  border: "1px solid var(--border)",
-                  fontSize: 11,
-                  color: "var(--text-tertiary)",
-                  background: "var(--bg-tertiary)",
-                }}
-              >
-                {tag}
-              </span>
-            ))}
+        {article.image_url && (
+          <div style={{ marginBottom: 14 }}>
+            <img
+              src={article.image_url}
+              alt={article.title}
+              style={{ width: "100%", aspectRatio: "16/7", objectFit: "cover", border: "1px solid var(--rule-heavy)", display: "block" }}
+            />
+            {companies[0] && (
+              <div className="font-mono" style={{ fontSize: 10, color: "var(--ink-tertiary)", marginTop: 4 }}>
+                {companies[0]}
+              </div>
+            )}
           </div>
         )}
-
-        {/* Bottom row: relevance bar + bookmark */}
+        <p className="font-body" style={{ fontSize: 14, lineHeight: 1.75, color: "var(--ink)", textIndent: "1.5em", marginBottom: 14 }}>
+          {article.summary}
+        </p>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          {/* Relevance bar */}
-          <div style={{ flex: 1, marginRight: 12 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 3,
-              }}
-            >
-              <span style={{ fontSize: 10, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Relevance
-              </span>
-            </div>
-            <div
-              style={{
-                height: 3,
-                background: "var(--bg-tertiary)",
-                borderRadius: 2,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${relevancePct}%`,
-                  background: "linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))",
-                  borderRadius: 2,
-                  transition: "width 0.5s ease",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Bookmark */}
-          <button
-            id={`bookmark-${article.id}`}
-            onClick={handleBookmark}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 18,
-              padding: 4,
-              transition: "transform 0.15s ease",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.2)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          <span
+            className="font-mono"
+            style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)", textDecoration: "underline", cursor: "pointer" }}
+            onClick={(e) => { e.stopPropagation(); onClick?.(article.id); }}
           >
-            {bookmarked ? "🔖" : "🏷️"}
-          </button>
+            Continue Reading
+          </span>
+          <span
+            className="font-mono"
+            style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-tertiary)", cursor: "pointer" }}
+            onClick={(e) => { e.stopPropagation(); if (!bookmarked) handleBookmark(e); }}
+          >
+            {bookmarked ? "" : "Save"}
+          </span>
         </div>
+        <div style={{ marginTop: 10 }}>
+          <span className="font-body" style={{ fontSize: 13, fontStyle: "italic", color: "var(--ink-secondary)" }}>
+            The tone of this story is{" "}
+          </span>
+          <span
+            className="font-mono"
+            style={{ fontSize: 13, color: sentiment.color, cursor: "pointer", textDecoration: "underline" }}
+            onClick={(e) => { e.stopPropagation(); setSentimentOpen(!sentimentOpen); }}
+          >
+            {sentiment.label}
+          </span>
+          <div className={`sentiment-annotation ${sentimentOpen ? "open" : ""}`}>
+            — AI analysis based on entity mentions, market language, and directional signals in this article.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Secondary variant
+  return (
+    <div
+      className="story-entry"
+      id={`news-card-${article.id}`}
+      style={{ cursor: "pointer", position: "relative" }}
+      onClick={() => onClick?.(article.id)}
+    >
+      <div className="font-mono" style={{ fontSize: 10, letterSpacing: "0.15em", color: "var(--accent)", marginBottom: 6 }}>
+        {category}
+      </div>
+      <h3
+        className="font-headline story-headline"
+        style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3, color: "var(--ink)", marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+      >
+        {article.title}
+      </h3>
+      <p className="font-body" style={{ fontSize: 13, fontStyle: "italic", lineHeight: 1.6, color: "var(--ink-secondary)", marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+        {article.summary}
+      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span className="font-mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-tertiary)" }}>
+          {timeAgo(article.published_at)}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            className="font-mono"
+            style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: sentiment.color, cursor: "pointer" }}
+            onClick={(e) => { e.stopPropagation(); setSentimentOpen(!sentimentOpen); }}
+          >
+            {sentiment.label}
+          </span>
+          <span
+            className="font-mono"
+            style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: bookmarked ? "var(--accent-secondary)" : "var(--ink-tertiary)", cursor: "pointer" }}
+            onClick={(e) => { e.stopPropagation(); if (!bookmarked) handleBookmark(e); }}
+          >
+            {bookmarked ? "Saved" : "Save"}
+          </span>
+        </div>
+      </div>
+      <div className={`sentiment-annotation ${sentimentOpen ? "open" : ""}`}>
+        — AI analysis based on entity mentions, market language, and directional signals in this article.
+      </div>
+
+      {/* Hover preview */}
+      <div className="story-preview">
+        <div className="font-mono" style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>{category}</div>
+        <p className="font-body" style={{ fontSize: 13, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {article.summary}
+        </p>
+        {companies.slice(0, 3).map((c) => (
+          <span key={c} className="entity-link font-body" style={{ fontSize: 12, color: "var(--ink-secondary)", marginRight: 8 }}>{c}</span>
+        ))}
       </div>
     </div>
   );
