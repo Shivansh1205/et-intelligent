@@ -28,7 +28,6 @@ export default function FeedPage({
   const params = use(searchParams);
   const debug = params.debug === "true";
 
-  const [mode, setMode] = useState<"for-you" | "trending">("for-you");
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ persona?: string; display_name?: string } | null>(null);
@@ -37,10 +36,10 @@ export default function FeedPage({
   const router = useRouter();
   const supabase = createClient();
 
-  const fetchFeed = useCallback(async (feedMode: string) => {
+  const fetchFeed = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/feed?offset=0&limit=20&mode=${feedMode}`);
+      const res = await fetch(`/api/feed?offset=0&limit=20&mode=for-you`);
       const data = await res.json();
       setArticles(data.articles ?? []);
     } catch (err) {
@@ -71,18 +70,11 @@ export default function FeedPage({
           setGraphAfter(graph ?? []);
         }
       }
-      fetchFeed("for-you");
+      fetchFeed();
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleModeChange = (section: string) => {
-    if (section === "for-you" || section === "trending") {
-      setMode(section);
-      fetchFeed(section);
-    }
-  };
 
   const handleBookmark = async (articleId: string) => {
     await fetch("/api/engagement", {
@@ -118,9 +110,14 @@ export default function FeedPage({
       <Masthead
         persona={profile?.persona}
         displayName={profile?.display_name ?? undefined}
-        activeSection={mode}
-        onSectionChange={handleModeChange}
       />
+
+      {/* Tagline strip */}
+      <div style={{ background: "var(--paper-deep)", borderBottom: "1px solid var(--rule)", padding: "7px 24px", textAlign: "center" }}>
+        <span className="font-body" style={{ fontSize: 13, fontStyle: "italic", color: "var(--ink-secondary)" }}>
+          Your Personalised Feed — ranked by your interests and reading history.
+        </span>
+      </div>
 
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 24px" }}>
         {loading ? (
@@ -132,7 +129,7 @@ export default function FeedPage({
         ) : (
           <FeedGrid
             initialArticles={articles}
-            mode={mode}
+            mode="for-you"
             onBookmark={handleBookmark}
             onArticleClick={handleArticleClick}
           />
@@ -147,7 +144,7 @@ export default function FeedPage({
             position: "fixed", bottom: 0, right: 0, width: 360,
             maxHeight: "60vh", overflowY: "auto",
             background: "var(--paper-raised)", border: "1px solid var(--rule-heavy)",
-            padding: 20, zIndex: 100, fontSize: 12,
+            padding: 20, zIndex: 100,
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
