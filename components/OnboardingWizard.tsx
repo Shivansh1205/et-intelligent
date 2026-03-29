@@ -105,8 +105,7 @@ export default function OnboardingWizard() {
     // Upsert profile (handles race condition where trigger hasn't fired yet)
     const { error: profileError } = await supabase
       .from("profiles")
-      .upsert({ id: user.id, persona, onboarding_done: true })
-      .eq("id", user.id);
+      .upsert({ id: user.id, persona, onboarding_done: true });
 
     if (profileError) {
       console.error("Profile upsert failed:", profileError);

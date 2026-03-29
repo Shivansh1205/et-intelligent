@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       const { data: articles } = await supabase
         .from('articles')
         .select('*')
-        .gte('published_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .gte('published_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1)
 

@@ -79,9 +79,7 @@ export async function getRankedFeed(userId: string, persona: string, offset = 0,
     supabase.from('user_interests').select('*').eq('user_id', userId),
     supabase.from('articles')
       .select('*')
-      .gte('published_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
-      .order('published_at', { ascending: false })
-      .limit(100),
+      .gte('published_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ])
 
   if (!articles?.length) return []
