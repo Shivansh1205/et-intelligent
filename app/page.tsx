@@ -8,7 +8,7 @@ export default function Home() {
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/onboarding` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
     });
   };
 
@@ -223,44 +223,7 @@ export default function Home() {
               fontSize: 13,
             }}
           >
-            <span
-              style={{ flex: 1, height: 1, background: "var(--border)" }}
-            />
-            or
-            <span
-              style={{ flex: 1, height: 1, background: "var(--border)" }}
-            />
           </div>
-
-          <button
-            id="magic-link-btn"
-            onClick={handleMagicLink}
-            style={{
-              height: 52,
-              borderRadius: 12,
-              border: "none",
-              background:
-                "linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))",
-              color: "#fff",
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.25s ease",
-              boxShadow: "0 4px 24px rgba(59,130,246,0.25)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.boxShadow =
-                "0 8px 32px rgba(59,130,246,0.35)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow =
-                "0 4px 24px rgba(59,130,246,0.25)";
-            }}
-          >
-            ✉️ Sign in with Magic Link
-          </button>
         </div>
 
         {/* Footer note */}

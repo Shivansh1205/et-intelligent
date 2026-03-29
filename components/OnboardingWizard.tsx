@@ -100,38 +100,35 @@ export default function OnboardingWizard() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setSaving(false); return; }
 
-    // Update profile
-    await supabase
+    // Upsert profile (handles race condition where trigger hasn't fired yet)
+    const { error: profileError } = await supabase
       .from("profiles")
-      .update({ persona, onboarding_done: true })
+      .upsert({ id: user.id, persona, onboarding_done: true })
       .eq("id", user.id);
 
-    // Insert sector interests
-    const sectorInserts = sectors.map((s) => ({
-      user_id: user.id,
-      interest_type: "sector",
-      interest_value: s,
-      weight: 2.0,
-    }));
-
-    // Insert company interests
-    const companyInserts = companies.map((c) => ({
-      user_id: user.id,
-      interest_type: "company",
-      interest_value: c,
-      weight: 3.0,
-    }));
-
-    if (sectorInserts.length > 0) {
-      await supabase.from("user_interests").insert(sectorInserts);
-    }
-    if (companyInserts.length > 0) {
-      await supabase.from("user_interests").insert(companyInserts);
+    if (profileError) {
+      console.error("Profile upsert failed:", profileError);
+      setSaving(false);
+      return;
     }
 
-    // Seed the interest graph
+    const interestInserts = [
+      ...sectors.map((s) => ({
+        user_id: user.id,
+        interest_type: "sector",
+        interest_value: s,
+        weight: 2.0,
+      })),
+      ...companies.map((c) => ({
+        user_id: user.id,
+        interest_type: "company",
+        interest_value: c,
+        weight: 3.0,
+      })),
+    ];
+
     const graphInserts = [
       ...sectors.map((s) => ({
         user_id: user.id,
@@ -147,9 +144,18 @@ export default function OnboardingWizard() {
       })),
     ];
 
-    if (graphInserts.length > 0) {
-      await supabase.from("interest_graph").insert(graphInserts);
-    }
+    await Promise.all([
+      interestInserts.length > 0
+        ? supabase.from("user_interests").upsert(interestInserts, {
+            onConflict: "user_id,interest_type,interest_value",
+          })
+        : Promise.resolve(),
+      graphInserts.length > 0
+        ? supabase.from("interest_graph").upsert(graphInserts, {
+            onConflict: "user_id,entity_type,entity_value",
+          })
+        : Promise.resolve(),
+    ]);
 
     router.push("/feed");
   };
